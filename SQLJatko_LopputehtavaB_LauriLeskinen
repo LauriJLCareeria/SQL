@@ -1,0 +1,49 @@
+CREATE PROCEDURE [dbo].[uspGeneroiProjektitjaTunnit] (@AlkuPvm DATETIME=NULL, @LoppuPvm DATETIME=NULL,@Tunnit int=NULL)
+
+AS
+SET NOCOUNT ON
+
+DECLARE @date DATETIME;
+DECLARE @HenkiloID INT;
+DECLARE @ProjektiID INT;
+
+SET @date = @AlkuPvm
+
+WHILE (@date <= @LoppuPvm)
+BEGIN
+	ALTER TABLE Tunnit
+	ALTER COLUMN Pvm VARCHAR(10)
+
+	DECLARE Cursor1 CURSOR
+	FOR SELECT Henkilo_id From dbo.Henkilot;
+
+	OPEN Cursor1
+	FETCH NEXT FROM Cursor1 INTO @HenkiloID;
+		WHILE @@FETCH_STATUS = 0
+		BEGIN
+		PRINT 'Henkilö ID: ' + Cast(@HenkiloID as Varchar) + ', ' + CONVERT(varchar,@date,104);
+			DECLARE Cursor2 CURSOR FOR
+			SELECT Projekti_id FROM dbo.Projektit 
+				OPEN Cursor2;
+				FETCH NEXT FROM Cursor2 INTO @ProjektiID;
+				WHILE @@FETCH_STATUS = 0
+				BEGIN
+					PRINT  'Lisätty ' + CAST(@Tunnit as varchar) + ' tuntia projektille ' + Cast(@ProjektiID as Varchar);
+					INSERT INTO Tunnit(Projekti_id,Henkilo_id,Pvm,Tunnit)
+					VALUES(@ProjektiID,@HenkiloID,CONVERT(varchar,@date,104),@Tunnit)
+					FETCH NEXT FROM Cursor2 INTO @ProjektiID;
+				END;
+				CLOSE Cursor2;
+				DEALLOCATE Cursor2;
+		FETCH NEXT FROM Cursor1 INTO @HenkiloID;
+		END;
+		PRINT ' ';
+		CLOSE Cursor1;
+		DEALLOCATE Cursor1;
+	SET @date = @date+1
+END
+
+PRINT 'Projektit, henkilöt, tunnit ja päivämäärät lisätty ajalle ' + CONVERT (varchar(25),@AlkuPvm,104) + ' - ' + CONVERT (varchar(25),@LoppuPvm,104) + '.'
+GO
+
+--EXEC uspGeneroiProjektitjaTunnit '2020-02-03','2020-02-06','3'
